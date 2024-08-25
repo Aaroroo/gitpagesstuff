@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Property Map with Weather and Directions</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+</head>
+<body>
+    <div id="map" style="height: 600px;"></div>
+    <button onclick="getWeather()">Get Today's Weather</button>
+    <button onclick="chooseDate()">Get Weather by Date</button>
+    <button onclick="getDirections()">Get Driving Directions</button>
+    <div id="weather"></div>
+    
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    
+    <script>
+        function getQueryParam(param) {
+            let params = new URLSearchParams(window.location.search);
+            return params.get(param);
+        }
+
+        var lat = getQueryParam('lat') || 39.940;
+        var lon = getQueryParam('lon') || -82.013;
+        var map = L.map('map').setView([lat, lon], 15);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 18,
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+        L.marker([lat, lon]).addTo(map).bindPopup('Property Location').openPopup();
+
+        function getWeather() {
+            var apiKey = 'b36a4fadbb254487912190317242508';
+            var url = `https://api.weatherapi.com/v1/current.json?key=${apiKey}&q=${lat},${lon}`;
+            
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    var weatherInfo = `
+                        <h3>Current Weather for ${data.location.name}</h3>
+                        <p>Temperature: ${data.current.temp_c}°C</p>
+                        <p>Weather: ${data.current.condition.text}</p>
+                        <p>Humidity: ${data.current.humidity}%</p>
+                    `;
+                    document.getElementById('weather').innerHTML = weatherInfo;
+                })
+                .catch(error => console.log('Error fetching weather:', error));
+        }
+
+        function chooseDate() {
+            let date = prompt("Enter date (YYYY-MM-DD):", "2023-08-25");
+            if (date) {
+                getWeatherByDate(date);
+            }
+        }
+
+        function getWeatherByDate(date) {
+            var apiKey = 'b36a4fadbb254487912190317242508';
+            var url = `https://api.weatherapi.com/v1/history.json?key=${apiKey}&q=${lat},${lon}&dt=${date}`;
+            
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    var weatherInfo = `
+                        <h3>Weather for ${date} in ${data.location.name}</h3>
+                        <p>Temperature: ${data.forecast.forecastday[0].day.avgtemp_c}°C</p>
+                        <p>Weather: ${data.forecast.forecastday[0].day.condition.text}</p>
+                        <p>Humidity: ${data.forecast.forecastday[0].day.avghumidity}%</p>
+                    `;
+                    document.getElementById('weather').innerHTML = weatherInfo;
+                })
+                .catch(error => console.log('Error fetching weather:', error));
+        }
+
+        function getDirections() {
+            let start = prompt("Enter starting address (or leave blank for current location):");
+            if (!start) {
+                navigator.geolocation.getCurrentPosition(function(position) {
+                    start = `${position.coords.latitude},${position.coords.longitude}`;
+                    openDirections(start);
+                });
+            } else {
+                openDirections(start);
+            }
+        }
+
+        function openDirections(start) {
+            var destination = `${lat},${lon}`;
+            var url = `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(start)}&destination=${destination}&travelmode=driving`;
+            window.open(url, '_blank');
+        }
+    </script>
+</body>
+</html>
